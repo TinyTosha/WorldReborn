@@ -8,17 +8,27 @@ import random
 # Путь к конфигурационному файлу
 options_path = 'options.txt'
 
-# Проверка существования конфигурационного файла и загрузка версии
+# Путь к директории с языковыми файлами
+lang_dir = 'resources/lang'
+
+# Параметры по умолчанию
+default_version = 'dev_03-notdemo'
+default_lang = 'eng'
+
+# Проверка существования конфигурационного файла и загрузка версии и языка
 if not os.path.exists(options_path):
     with open(options_path, 'w') as f:
-        f.write('version=dev_02-notdemo')
-    VERSION = 'dev_02-notdemo'
+        f.write(f'version={default_version}\nlang={default_lang}')
+    VERSION = default_version
+    LANG = default_lang
 else:
     with open(options_path, 'r') as f:
         lines = f.readlines()
         for line in lines:
             if line.startswith('version='):
                 VERSION = line.strip().split('=')[1]
+            elif line.startswith('lang='):
+                LANG = line.strip().split('=')[1]
 
 # Настройка логирования
 log_dir = 'logs'
@@ -85,6 +95,45 @@ def load_textures(directory):
 
 # Загрузка текстур
 textures = load_textures(texture_dir)
+
+# Функция для загрузки языка из файла
+def load_language(lang_code):
+    lang_path = os.path.join(lang_dir, f'{lang_code}.lang')
+    lang_data = {}
+    try:
+        with open(lang_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    lang_data[key] = value
+        logging.info(f'Loaded language: {lang_code}')
+    except FileNotFoundError:
+        if lang_code != default_lang:
+            logging.error(f'Language file not found: {lang_path}. Falling back to default language.')
+            return load_language(default_lang)
+        else:
+            logging.critical(f'Default language file not found: {lang_path}.')
+            show_error_message()
+            sys.exit(1)
+    return lang_data
+
+# Функция для отображения сообщения об ошибке
+def show_error_message():
+    error_font = pygame.font.Font(font_path, 30)
+    error_text = error_font.render("Reinstall game please:", True, (255, 0, 0))
+    error_text2 = error_font.render("https://github.com/TinyTosha/WorldReborn", True, (255, 0, 0))
+    while True:
+        screen.fill((0, 0, 0))
+        screen.blit(error_text, (100, 250))
+        screen.blit(error_text2, (100, 300))
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+# Загрузка языка
+lang_data = load_language(LANG)
 
 # Игровые параметры
 TILE_SIZE = 40
@@ -184,64 +233,34 @@ def create_world(layout):
                 blocks.add(Block(block_type, x * TILE_SIZE, y * TILE_SIZE + y_offset))
     return blocks
 
-# Класс кнопки
-class Button(pygame.sprite.Sprite):
-    def __init__(self, text, x, y):
-        super().__init__()
-        self.font = pygame.font.Font(font_path, 30)
-        self.text = text
-        self.image = self.font.render(text, True, (255, 255, 255))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
-
-    def is_clicked(self, pos):
-        return self.rect.collidepoint(pos)
-
-# Функция для отображения главного меню
+# Функция отображения главного меню
 def main_menu():
-    menu_running = True
-    background_color = (50, 50, 50)  # Цвет фона меню
-    menu_buttons = pygame.sprite.Group()
+    title_text = font.render(lang_data.get('menu.title', 'World Reborn'), True, (255, 255, 255))
+    play_text = font.render(lang_data.get('menu.button.play', 'Play'), True, (255, 255, 255))
 
-    title_font = pygame.font.Font(font_path, 60)
-    title_text = title_font.render("World: Reborn", True, (255, 255, 255))
-    title_rect = title_text.get_rect(center=(400, 100))
+    title_rect = title_text.get_rect(center=(400, 200))
+    play_rect = play_text.get_rect(center=(400, 300))
 
-    play_button = Button("Play", 350, 300)
-    menu_buttons.add(play_button)
+    while True:
+        screen.fill((0, 0, 0))
+        screen.blit(title_text, title_rect)
+        screen.blit(play_text, play_rect)
+        pygame.display.flip()
 
-    while menu_running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if play_button.is_clicked(event.pos):
-                    menu_running = False
+                if play_rect.collidepoint(event.pos):
+                    return
 
-        screen.fill(background_color)
-        screen.blit(title_text, title_rect)
-        menu_buttons.draw(screen)
-        pygame.display.flip()
-
-# Функция для отображения экрана паузы
+# Функция отображения экрана паузы
 def show_pause_screen():
-    pause_font = pygame.font.Font(font_path, 50)
-    pause_text = pause_font.render("Pause", True, (255, 255, 255))
+    pause_text = font.render("Paused", True, (255, 255, 255))
     pause_rect = pause_text.get_rect(center=(400, 300))
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return  # Возвращаемся к игре
-
-        screen.fill((0, 0, 0))  # Черный фон для экрана паузы
-        screen.blit(pause_text, pause_rect)
-        pygame.display.flip()
+    screen.blit(pause_text, pause_rect)
+    pygame.display.flip()
 
 # Функция для создания хотбара
 def create_hotbar():
@@ -322,7 +341,7 @@ def game_loop():
                     selected_slot = (selected_slot - 1) % 10
                 elif event.button == 5:  # Прокрутка вниз
                     selected_slot = (selected_slot + 1) % 10
-                elif event.button == 3:  # Правая кнопка мыши
+                elif event.button == 1:  # Левая кнопка мыши (ломание блока)
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
                     block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
@@ -336,7 +355,7 @@ def game_loop():
                                 inventory[block_type] = 0
                             inventory[block_type] += 1
                             break
-                elif event.button == 1:  # Левая кнопка мыши
+                elif event.button == 3:  # Правая кнопка мыши (ставить блок)
                     x, y = pygame.mouse.get_pos()
                     block_x = x // TILE_SIZE * TILE_SIZE
                     block_y = y // TILE_SIZE * TILE_SIZE
