@@ -12,7 +12,7 @@ options_path = 'options.txt'
 lang_dir = 'resources/lang'
 
 # Параметры по умолчанию
-default_version = 'dev_03_1-notdemo'
+default_version = 'dev_04-notdemo'
 default_lang = 'eng'
 
 # Проверка существования конфигурационного файла и загрузка версии и языка
@@ -128,8 +128,8 @@ def load_language(lang_code):
 # Функция для отображения сообщения об ошибке
 def show_error_message():
     error_font = pygame.font.Font(font_path, 30)
-    error_text = error_font.render("Install lang file:", True, (255, 0, 0))
-    error_text2 = error_font.render("github.com/TinyTosha/WorldReborn", True, (255, 0, 0))
+    error_text = error_font.render("Reinstall game please:", True, (255, 0, 0))
+    error_text2 = error_font.render("https://github.com/TinyTosha/WorldReborn", True, (255, 0, 0))
     while True:
         screen.fill((0, 0, 0))
         screen.blit(error_text, (100, 250))
@@ -156,9 +156,9 @@ WORLD_LAYOUT = [
     "00000000000000000000",
     "11111111111111111111",
     "44444444444444444444",
-    "22222222222222222222",
-    "22222222222222222222",
-    "22222222222222222222",
+    "22252222222222222222",
+    "25555222222222622222",
+    "22222225522222262262",
     "33333333333333333333"
 ]
 
@@ -238,6 +238,12 @@ def create_world(layout):
                 blocks.add(Block('bedrock', x * TILE_SIZE, y * TILE_SIZE + y_offset))
             elif tile == '4':
                 block_type = 'stone' if random.choice([True, False]) else 'dirt'
+                blocks.add(Block(block_type, x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == '5':
+                block_type = 'stone' if random.choice([True, False]) else 'ores/coal'
+                blocks.add(Block(block_type, x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == '6':
+                block_type = 'stone' if random.choice([True, False]) else 'ores/iron'
                 blocks.add(Block(block_type, x * TILE_SIZE, y * TILE_SIZE + y_offset))
     return blocks
 
