@@ -128,8 +128,8 @@ def load_language(lang_code):
 # Функция для отображения сообщения об ошибке
 def show_error_message():
     error_font = pygame.font.Font(font_path, 30)
-    error_text = error_font.render("Reinstall game please:", True, (255, 0, 0))
-    error_text2 = error_font.render("https://github.com/TinyTosha/WorldReborn", True, (255, 0, 0))
+    error_text = error_font.render("Install lang file:", True, (255, 0, 0))
+    error_text2 = error_font.render("github.com/TinyTosha/WorldReborn", True, (255, 0, 0))
     while True:
         screen.fill((0, 0, 0))
         screen.blit(error_text, (100, 250))
