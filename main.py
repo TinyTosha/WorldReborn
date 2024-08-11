@@ -12,7 +12,7 @@ options_path = 'options.txt'
 lang_dir = 'resources/lang'
 
 # Параметры по умолчанию
-default_version = 'dev_03-notdemo'
+default_version = 'dev_03_1-notdemo'
 default_lang = 'eng'
 
 # Проверка существования конфигурационного файла и загрузка версии и языка
