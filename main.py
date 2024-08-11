@@ -55,9 +55,13 @@ icon_path = os.path.join(texture_dir, 'icon.png')
 try:
     icon = pygame.image.load(icon_path)
     pygame.display.set_icon(icon)
-    logging.info(f'Loaded icon: {icon_path.replace("\\", "/")}')
+    icon_path = icon_path.replace("\\", "/")
+    logging.info(f'Icon found: {icon_path}')
+
+
 except FileNotFoundError:
-    logging.error(f'Icon not found: {icon_path.replace("\\", "/")}')
+    icon_path = icon_path.replace("\\", "/")
+    logging.error(f'Icon not found: {icon_path}')
     sys.exit(1)
 
 # Настройка экрана
@@ -68,9 +72,11 @@ pygame.display.set_caption(f'World Reborn - {VERSION}')
 font_path = 'resources/font/font1.ttf'
 try:
     font = pygame.font.Font(font_path, 24)
-    logging.info(f'Loaded font: {font_path.replace("\\", "/")}')
+    font_path = font_path.replace("\\", "/")
+    logging.info(f'Font found: {font_path}')
 except FileNotFoundError:
-    logging.error(f'Font not found: {font_path.replace("\\", "/")}')
+    font_path = font_path.replace("\\", "/")
+    logging.error(f'Font not found: {icon_path}')
     sys.exit(1)
 
 # Функция для загрузки текстур из директории и подкаталогов
@@ -87,9 +93,11 @@ def load_textures(directory):
                 try:
                     texture = pygame.image.load(os.path.join(root, filename)).convert_alpha()
                     textures[texture_id] = texture
-                    logging.info(f'Loaded texture: "{texture_id}" {os.path.join(root, filename).replace("\\", "/")}')
+                    path = os.path.join(root, filename).replace("\\", "/")
+                    logging.info(f'Loaded texture: "{texture_id}" {path}')
                 except pygame.error as e:
-                    logging.error(f'Failed to load texture: "{texture_id}" {os.path.join(root, filename).replace("\\", "/")} - {e}')
+                    lpath = os.path.join(root, filename).replace("\\", "/")
+                    logging.info(f'Loaded error texture: "{texture_id}" {path}')
                     textures[texture_id] = error_texture
     return textures
 
