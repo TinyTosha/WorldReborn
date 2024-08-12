@@ -2,4 +2,4 @@
 
 > [!NOTE] This project is made on ChatGPT (because I'm a lazy creature).
 
-[<mark style="color:purple;">**Devs Docs**</mark>](https://tinytosha.gitbook.io/worldreborn-devs)
+<a href="https://tinytosha.gitbook.io/worldreborn-plr" style="color: black; text-decoration: underline;text-decoration-style: dotted;">Player Docs</a>
