@@ -5,22 +5,18 @@ import logging
 from datetime import datetime
 import random
 
-# Путь к конфигурационному файлу
 options_path = 'options.txt'
-
-# Путь к директории с языковыми файлами
 lang_dir = 'resources/lang'
-
-# Параметры по умолчанию
-default_version = 'dev_04-notdemo'
+default_version = 'dev_05-demo'
 default_lang = 'eng'
+default_tick = 60
 
-# Проверка существования конфигурационного файла и загрузка версии и языка
 if not os.path.exists(options_path):
     with open(options_path, 'w') as f:
-        f.write(f'version={default_version}\nlang={default_lang}')
+        f.write(f'version={default_version}\nlang={default_lang}\ntick={default_tick}')
     VERSION = default_version
     LANG = default_lang
+    TICK_CFG = default_tick
 else:
     with open(options_path, 'r') as f:
         lines = f.readlines()
@@ -29,8 +25,9 @@ else:
                 VERSION = line.strip().split('=')[1]
             elif line.startswith('lang='):
                 LANG = line.strip().split('=')[1]
+            elif line.startswith('tick='):
+                TICK_CFG = int(line.strip().split('=')[1])
 
-# Настройка логирования
 log_dir = 'logs'
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
@@ -44,31 +41,22 @@ logging.basicConfig(level=logging.DEBUG,
                         logging.StreamHandler(sys.stdout)
                     ])
 
-# Инициализация Pygame
 pygame.init()
-
-# Путь к директории текстур
 texture_dir = 'resources/textures'
-
-# Настройка иконки
 icon_path = os.path.join(texture_dir, 'icon.png')
 try:
     icon = pygame.image.load(icon_path)
     pygame.display.set_icon(icon)
     icon_path = icon_path.replace("\\", "/")
     logging.info(f'Icon found: {icon_path}')
-
-
 except FileNotFoundError:
     icon_path = icon_path.replace("\\", "/")
     logging.error(f'Icon not found: {icon_path}')
     sys.exit(1)
 
-# Настройка экрана
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption(f'World Reborn - {VERSION}')
 
-# Загрузка шрифта
 font_path = 'resources/font/font1.ttf'
 try:
     font = pygame.font.Font(font_path, 24)
@@ -79,7 +67,6 @@ except FileNotFoundError:
     logging.error(f'Font not found: {icon_path}')
     sys.exit(1)
 
-# Функция для загрузки текстур из директории и подкаталогов
 def load_textures(directory):
     textures = {}
     error_texture_path = os.path.join(directory, 'error_block.png')
@@ -101,10 +88,8 @@ def load_textures(directory):
                     textures[texture_id] = error_texture
     return textures
 
-# Загрузка текстур
 textures = load_textures(texture_dir)
 
-# Функция для загрузки языка из файла
 def load_language(lang_code):
     lang_path = os.path.join(lang_dir, f'{lang_code}.lang')
     lang_data = {}
@@ -125,7 +110,6 @@ def load_language(lang_code):
             sys.exit(1)
     return lang_data
 
-# Функция для отображения сообщения об ошибке
 def show_error_message():
     error_font = pygame.font.Font(font_path, 30)
     error_text = error_font.render("Reinstall game please:", True, (255, 0, 0))
@@ -140,19 +124,20 @@ def show_error_message():
                 pygame.quit()
                 sys.exit()
 
-# Загрузка языка
 lang_data = load_language(LANG)
 
-# Игровые параметры
 TILE_SIZE = 40
-PLAYER_SIZE = 30  # Размер игрока чуть меньше, чем размер блока
+PLAYER_SIZE = 30
 PLAYER_SPEED = 5
 JUMP_HEIGHT = 10
 GRAVITY = 0.5
 REACH_DISTANCE = TILE_SIZE * 3
 
-# Генерация мира
 WORLD_LAYOUT = [
+    "                l   ",
+    "               lll  ",
+    "                t   ",
+    "                t   ",
     "00000000000000000000",
     "11111111111111111111",
     "44444444444444444444",
@@ -162,7 +147,6 @@ WORLD_LAYOUT = [
     "33333333333333333333"
 ]
 
-# Класс игрока
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -178,6 +162,7 @@ class Player(pygame.sprite.Sprite):
             return
 
         dx = (keys[pygame.K_d] - keys[pygame.K_a]) * PLAYER_SPEED
+
         if keys[pygame.K_a]:
             self.image = pygame.transform.scale(textures['player_left'], (PLAYER_SIZE, PLAYER_SIZE))
             self.facing_right = False
@@ -210,7 +195,6 @@ class Player(pygame.sprite.Sprite):
                 elif dx < 0:
                     self.rect.left = block.rect.right
 
-# Класс блока
 class Block(pygame.sprite.Sprite):
     def __init__(self, texture_id, x, y):
         super().__init__()
@@ -222,8 +206,14 @@ class Block(pygame.sprite.Sprite):
     def update(self):
         pass
 
-# Создание мира
 def create_world(layout):
+    logging.info('Creating new world... %10')
+    SPAWN_TREE = random.randint(0, 1)
+    if SPAWN_TREE == 0:
+        SPAWN_TREE = 0
+    elif SPAWN_TREE == 1:
+        logging.info('Structure created: "structures/tree/" resources/textures/structures/tree/')
+    logging.info('Creating new world... %50')
     blocks = pygame.sprite.Group()
     y_offset = 600 - len(layout) * TILE_SIZE
     for y, row in enumerate(layout):
@@ -245,9 +235,15 @@ def create_world(layout):
             elif tile == '6':
                 block_type = 'stone' if random.choice([True, False]) else 'ores/iron'
                 blocks.add(Block(block_type, x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == 't':
+                if SPAWN_TREE == 1:
+                    blocks.add(Block('structures/tree/log', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == 'l':
+                if SPAWN_TREE == 1:
+                    blocks.add(Block('structures/tree/leaves', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+    logging.info('Creating new world... %100')
     return blocks
 
-# Функция отображения главного меню
 def main_menu():
     title_text = font.render(lang_data.get('menu.title', 'World Reborn'), True, (255, 255, 255))
     play_text = font.render(lang_data.get('menu.button.play', 'Play'), True, (255, 255, 255))
@@ -269,16 +265,15 @@ def main_menu():
                 if play_rect.collidepoint(event.pos):
                     return
 
-# Функция отображения экрана паузы
 def show_pause_screen():
     pause_text = font.render("Paused", True, (255, 255, 255))
     pause_rect = pause_text.get_rect(center=(400, 300))
     screen.blit(pause_text, pause_rect)
     pygame.display.flip()
 
-# Функция для создания хотбара
 def create_hotbar():
     hotbar = []
+    random_number = random.randint(0, 9)
     slot_texture_path = os.path.join(texture_dir, 'ui', 'slot.png')
     slot_texture = pygame.image.load(slot_texture_path).convert_alpha()
     slot_texture = pygame.transform.scale(slot_texture, (TILE_SIZE * 2, TILE_SIZE))
@@ -287,7 +282,6 @@ def create_hotbar():
         hotbar.append(slot)
     return hotbar
 
-# Функция для отображения хотбара
 def draw_hotbar(hotbar, selected_slot):
     for i, slot in enumerate(hotbar):
         x = 10 + i * (TILE_SIZE * 2 + 10)
@@ -298,14 +292,12 @@ def draw_hotbar(hotbar, selected_slot):
             y -= 5
         screen.blit(slot, (x, y))
 
-# Функция проверки, находится ли игрок в пределах досягаемости блока
 def in_reach(player, block):
     player_x, player_y = player.rect.center
     block_x, block_y = block.rect.center
     distance = ((player_x - block_x) ** 2 + (player_y - block_y) ** 2) ** 0.5
     return distance <= REACH_DISTANCE
 
-# Основной игровой цикл
 def game_loop():
     global blocks
     player = Player(100, 100)
@@ -328,15 +320,14 @@ def game_loop():
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_f:
-                    # Ломание блока
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
                     block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
                     for block in blocks:
                         if block.rect.topleft == (block_x, block_y) and in_reach(player, block):
                             blocks.remove(block)
-                            block_type = block.image.get_at((0, 0))  # Получаем цвет пикселя как идентификатор блока
-                            block_type = block_type[:3]  # Получаем только RGB
+                            block_type = block.image.get_at((0, 0))
+                            block_type = block_type[:3]
                             block_type = next((k for k, v in textures.items() if v.get_at((0, 0)) == block_type), 'error_block')
                             if block_type not in inventory:
                                 inventory[block_type] = 0
@@ -351,30 +342,30 @@ def game_loop():
                 elif event.key in range(pygame.K_1, pygame.K_0 + 1):
                     selected_slot = (event.key - pygame.K_1) % 10
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:  # Прокрутка вверх
+                if event.button == 4:
                     selected_slot = (selected_slot - 1) % 10
-                elif event.button == 5:  # Прокрутка вниз
+                elif event.button == 5:
                     selected_slot = (selected_slot + 1) % 10
-                elif event.button == 1:  # Левая кнопка мыши (ломание блока)
+                elif event.button == 1:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
                     block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
                     for block in blocks:
                         if block.rect.topleft == (block_x, block_y) and in_reach(player, block):
                             blocks.remove(block)
-                            block_type = block.image.get_at((0, 0))  # Получаем цвет пикселя как идентификатор блока
-                            block_type = block_type[:3]  # Получаем только RGB
+                            block_type = block.image.get_at((0, 0))
+                            block_type = block_type[:3]
                             block_type = next((k for k, v in textures.items() if v.get_at((0, 0)) == block_type), 'error_block')
                             if block_type not in inventory:
                                 inventory[block_type] = 0
                             inventory[block_type] += 1
                             break
-                elif event.button == 3:  # Правая кнопка мыши (ставить блок)
+                elif event.button == 3:
                     x, y = pygame.mouse.get_pos()
                     block_x = x // TILE_SIZE * TILE_SIZE
                     block_y = y // TILE_SIZE * TILE_SIZE
                     if not any(block.rect.collidepoint(x, y) for block in blocks):
-                        block_type = 'grass_block'  # Пример блока, который ставится
+                        block_type = 'grass_block'
                         if block_type in inventory and inventory[block_type] > 0:
                             new_block = Block(block_type, block_x, block_y)
                             blocks.add(new_block)
@@ -382,7 +373,7 @@ def game_loop():
 
         if not paused:
             current_time = pygame.time.get_ticks()
-            if current_time - last_generation_time > 5 * 60 * 1000:  # 5 минут
+            if current_time - last_generation_time > 5 * 60 * 1000:
                 blocks.empty()
                 blocks = create_world(WORLD_LAYOUT)
                 last_generation_time = current_time
@@ -390,23 +381,18 @@ def game_loop():
             keys = pygame.key.get_pressed()
             player.update(keys, blocks, paused)
 
-            # Очистка экрана
-            screen.fill((135, 206, 235))  # Цвет фона, например, голубое небо
+            screen.fill((135, 206, 235))
 
-            # Обновление блоков
             blocks.update()
 
-            # Отображение блоков и игрока
             blocks.draw(screen)
             all_sprites.draw(screen)
 
-            # Отображение хотбара
             draw_hotbar(hotbar, selected_slot)
 
             pygame.display.flip()
-            clock.tick(60)  # Увеличение FPS до 60
+            clock.tick(TICK_CFG)
 
-# Запуск программы
 if __name__ == "__main__":
     while True:
         main_menu()
