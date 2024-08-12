@@ -4,19 +4,60 @@ import sys
 import logging
 from datetime import datetime
 import random
+import time
 
-options_path = 'options.txt'
-lang_dir = 'resources/lang'
-default_version = 'dev_05-demo'
+options_path = 'config/Game.cfg'
+lang_dir = 'config/lang'
+debug_mode = False
+chat_open = False
+version_fordebug = 'dev_06-notdemo'
+default_version = 'dev_06-notdemo'
+default_playername = 'Player'
 default_lang = 'eng'
 default_tick = 60
+default_scene_name = 'Loading...'
+default_secret= 'null'
+
+if not os.path.exists('config'):
+    os.makedirs('config')
+    if not os.path.exists('config/lang'):
+        os.makedirs('config/lang')
+if not os.path.exists('config/lang/eng.lang'):
+    with open('config/lang/eng.lang', 'w') as f:
+        f.write(f'menu.title=World: Reborn\nmenu.button.play=Play')
+if not os.path.exists('config/.temp'):
+    os.makedirs('config/.temp')
+if not os.path.exists('config/Secret.cfg'):
+    with open('config/Secret.cfg', 'w') as f:
+        f.write(f'Data={default_secret}')
+    SECRET = default_secret
+else:
+    with open('config/Secret.cfg', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if line.startswith('Data='):
+                SECRET = line.strip().split('=')[1]
+
+with open('config/.temp/scenename.cfg', 'w') as f:
+    f.write(f'data={default_scene_name}')
+SCENE_NAME = default_scene_name
+with open('config/.temp/scenename.cfg', 'w') as f:
+    f.write(f'data=Menu')
+with open('config/.temp/scenename.cfg', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if line.startswith('data='):
+                VERSION = line.strip().split('=')[1]
+SCENE_NAME = 'Menu'
+
 
 if not os.path.exists(options_path):
     with open(options_path, 'w') as f:
-        f.write(f'version={default_version}\nlang={default_lang}\ntick={default_tick}')
+        f.write(f'version={default_version}\nlang={default_lang}\ntick={default_tick}\nplayername={default_playername}')
     VERSION = default_version
     LANG = default_lang
     TICK_CFG = default_tick
+    PLR_NAME = default_playername
 else:
     with open(options_path, 'r') as f:
         lines = f.readlines()
@@ -27,6 +68,8 @@ else:
                 LANG = line.strip().split('=')[1]
             elif line.startswith('tick='):
                 TICK_CFG = int(line.strip().split('=')[1])
+            elif line.startswith('playername='):
+                PLR_NAME = line.strip().split('=')[1]
 
 log_dir = 'logs'
 if not os.path.exists(log_dir):
@@ -42,6 +85,12 @@ logging.basicConfig(level=logging.DEBUG,
                     ])
 
 pygame.init()
+logging.info(f'World: Reborn - {version_fordebug} launched!')
+logging.info(f'Loggined: {PLR_NAME}! Enjoy the game!')
+logging.info('')
+if PLR_NAME == 'TinyTosha':
+    logging.error("Don't lie!")
+    quit()
 texture_dir = 'resources/textures'
 icon_path = os.path.join(texture_dir, 'icon.png')
 try:
@@ -55,7 +104,9 @@ except FileNotFoundError:
     sys.exit(1)
 
 screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption(f'World Reborn - {VERSION}')
+pygame.display.set_caption(f'World Reborn - {VERSION} - {SCENE_NAME}')
+
+os.remove('config/.temp/scenename.cfg')
 
 font_path = 'resources/font/font1.ttf'
 try:
@@ -112,8 +163,8 @@ def load_language(lang_code):
 
 def show_error_message():
     error_font = pygame.font.Font(font_path, 30)
-    error_text = error_font.render("Reinstall game please:", True, (255, 0, 0))
-    error_text2 = error_font.render("https://github.com/TinyTosha/WorldReborn", True, (255, 0, 0))
+    error_text = error_font.render("Install eng.lang please:", True, (255, 0, 0))
+    error_text2 = error_font.render("github.com/TinyTosha/WorldReborn", True, (255, 0, 0))
     while True:
         screen.fill((0, 0, 0))
         screen.blit(error_text, (100, 250))
@@ -126,6 +177,24 @@ def show_error_message():
 
 lang_data = load_language(LANG)
 
+def handle_chat_input(event, chat_active, chat_text):
+    if event.type == pygame.KEYDOWN:
+        if chat_active:
+            if event.key == pygame.K_RETURN:  # Enter key
+                if chat_text.startswith("/"):
+                    process_command(chat_text)
+                else:
+                    logging.info(f'<{PLR_NAME}> {chat_text}')
+                chat_text = ""
+                chat_active = False
+            elif event.key == pygame.K_BACKSPACE:
+                chat_text = chat_text[:-1]
+            else:
+                chat_text += event.unicode
+        elif event.key == pygame.K_t:  # Open chat
+            chat_active = True
+    return chat_active, chat_text
+
 TILE_SIZE = 40
 PLAYER_SIZE = 30
 PLAYER_SPEED = 5
@@ -133,20 +202,32 @@ JUMP_HEIGHT = 10
 GRAVITY = 0.5
 REACH_DISTANCE = TILE_SIZE * 3
 
-WORLD_LAYOUT = [
-    "                l   ",
-    "               lll  ",
-    "                t   ",
-    "                t   ",
-    "00000000000000000000",
-    "11111111111111111111",
-    "44444444444444444444",
-    "22252222222222222222",
-    "25555222222222622222",
-    "22222225522222262262",
-    "33333333333333333333"
-]
-
+# World Generators Secret
+if SECRET == 'SkyBlock':
+    WORLD_LAYOUT = [
+        "  000               ",
+        "   1                ",
+        "                    ",
+        "                    ",
+        "                    ",
+        "                    ",
+        "                    "
+    ]
+    logging.info('World by coconut31')
+else:
+    WORLD_LAYOUT = [
+        "                l   ",
+        " pppppppp      lll  ",
+        " g      p       t   ",
+        " p              t   ",
+        "0[[[[[[[[00000000000",
+        "11111111111111111111",
+        "44444444444444444444",
+        "22252222222222222222",
+        "25555222222222622222",
+        "22222225522222262262",
+        "33333333333333333333"
+    ]
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -209,10 +290,11 @@ class Block(pygame.sprite.Sprite):
 def create_world(layout):
     logging.info('Creating new world... %10')
     SPAWN_TREE = random.randint(0, 1)
-    if SPAWN_TREE == 0:
-        SPAWN_TREE = 0
-    elif SPAWN_TREE == 1:
+    SPAWN_HOUSE = random.randint(0, 10)
+    if SPAWN_TREE == 1:
         logging.info('Structure created: "structures/tree/" resources/textures/structures/tree/')
+    if SPAWN_HOUSE == 5:
+        logging.info('Structure created: "structures/house/" resources/textures/structures/house/')
     logging.info('Creating new world... %50')
     blocks = pygame.sprite.Group()
     y_offset = 600 - len(layout) * TILE_SIZE
@@ -241,11 +323,22 @@ def create_world(layout):
             elif tile == 'l':
                 if SPAWN_TREE == 1:
                     blocks.add(Block('structures/tree/leaves', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == '[':
+                if SPAWN_HOUSE == 5:
+                    blocks.add(Block('structures/house/planks', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+                else:
+                    blocks.add(Block('grass_block', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == 'p':
+                if SPAWN_HOUSE == 5:
+                    blocks.add(Block('structures/house/planks', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == 'g':
+                if SPAWN_HOUSE == 5:
+                    blocks.add(Block('structures/house/glass', x * TILE_SIZE, y * TILE_SIZE + y_offset))
     logging.info('Creating new world... %100')
     return blocks
 
 def main_menu():
-    title_text = font.render(lang_data.get('menu.title', 'World Reborn'), True, (255, 255, 255))
+    title_text = font.render(lang_data.get('menu.title', 'World: Reborn'), True, (255, 255, 255))
     play_text = font.render(lang_data.get('menu.button.play', 'Play'), True, (255, 255, 255))
 
     title_rect = title_text.get_rect(center=(400, 200))
@@ -263,7 +356,11 @@ def main_menu():
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if play_rect.collidepoint(event.pos):
+                    with open('config/.temp/scenename.cfg', 'w') as f:
+                        f.write(f'data=World')
                     return
+                
+                    
 
 def show_pause_screen():
     pause_text = font.render("Paused", True, (255, 255, 255))
@@ -298,8 +395,34 @@ def in_reach(player, block):
     distance = ((player_x - block_x) ** 2 + (player_y - block_y) ** 2) ** 0.5
     return distance <= REACH_DISTANCE
 
+def draw_debug_info(player):
+    debug_font = pygame.font.Font(font_path, 20)
+    
+    version_text = debug_font.render(f'World: Reborn - {version_fordebug}', True, (255, 0, 0))
+    ticks_text = debug_font.render(f'Ticks: {TICK_CFG}', True, (255, 0, 0))
+    coords_text = debug_font.render(f'Coordinates (X, Y): ({int(player.rect.x)}, {int(player.rect.y)})', True, (255, 0, 0))
+    scenename_text = debug_font.render(f'Secret-code: {SECRET}', True, (255, 0, 0))
+
+    screen.blit(version_text, (10, 10))
+    screen.blit(ticks_text, (10, 70))
+    screen.blit(coords_text, (10, 40))
+    screen.blit(scenename_text, (10, 100))
+
+def process_command(command):
+    if command == "/world_layout":
+        logging.info(f'World Layout: {WORLD_LAYOUT}')
+    else:
+        logging.info(f'Unknown command: {command}')
+
+
+def draw_chat_input(chat_text):
+    chat_font = pygame.font.Font(font_path, 20)
+    chat_surface = chat_font.render(chat_text, True, (255, 255, 255))
+    screen.blit(chat_surface, (10, 550))
+
+
 def game_loop():
-    global blocks
+    global blocks, debug_mode
     player = Player(100, 100)
     blocks = create_world(WORLD_LAYOUT)
     all_sprites = pygame.sprite.Group(player)
@@ -312,6 +435,9 @@ def game_loop():
     last_generation_time = pygame.time.get_ticks()
     paused = False
 
+    chat_active = False
+    chat_text = ""
+
     running = True
     clock = pygame.time.Clock()
     while running:
@@ -319,7 +445,41 @@ def game_loop():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_f:
+                if chat_active:
+                    chat_active, chat_text = handle_chat_input(event, chat_active, chat_text)
+                else:
+                    if event.key == pygame.K_f:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
+                        block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
+                        for block in blocks:
+                            if block.rect.topleft == (block_x, block_y) and in_reach(player, block):
+                              blocks.remove(block)
+                            block_type = block.image.get_at((0, 0))
+                            block_type = block_type[:3]
+                            block_type = next((k for k, v in textures.items() if v.get_at((0, 0)) == block_type), 'error_block')
+                            if block_type not in inventory:
+                                inventory[block_type] = 0
+                            inventory[block_type] += 1
+                            break
+                    elif event.key == pygame.K_ESCAPE:
+                        if not paused:
+                            show_pause_screen()
+                            paused = True
+                        else:
+                            paused = False
+                    elif event.key == pygame.K_F3:
+                        debug_mode = not debug_mode
+                    elif event.key in range(pygame.K_1, pygame.K_0 + 1):
+                        selected_slot = (event.key - pygame.K_1) % 10
+                    elif event.key == pygame.K_t:
+                        chat_active = True
+            elif event.type == pygame.MOUSEBUTTONDOWN and not chat_active:
+                if event.button == 4:
+                    selected_slot = (selected_slot - 1) % 10
+                elif event.button == 5:
+                    selected_slot = (selected_slot + 1) % 10
+                elif event.button == 1:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
                     block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
@@ -333,12 +493,25 @@ def game_loop():
                                 inventory[block_type] = 0
                             inventory[block_type] += 1
                             break
+                elif event.button == 3:
+                    x, y = pygame.mouse.get_pos()
+                    block_x = x // TILE_SIZE * TILE_SIZE
+                    block_y = y // TILE_SIZE * TILE_SIZE
+                    if not any(block.rect.collidepoint(x, y) for block in blocks):
+                        block_type = 'grass_block'
+                        if block_type in inventory and inventory[block_type] > 0:
+                            new_block = Block(block_type, block_x, block_y)
+                            blocks.add(new_block)
+                            inventory[block_type] -= 1
+
                 elif event.key == pygame.K_ESCAPE:
                     if not paused:
                         show_pause_screen()
                         paused = True
                     else:
                         paused = False
+                elif event.key == pygame.K_F3:
+                    debug_mode = not debug_mode  # Переключаем режим отладки
                 elif event.key in range(pygame.K_1, pygame.K_0 + 1):
                     selected_slot = (event.key - pygame.K_1) % 10
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -390,8 +563,17 @@ def game_loop():
 
             draw_hotbar(hotbar, selected_slot)
 
+            if debug_mode:
+                draw_debug_info(player)
+
+            
+
+            if chat_active:
+                draw_chat_input(chat_text)
+
             pygame.display.flip()
             clock.tick(TICK_CFG)
+
 
 if __name__ == "__main__":
     while True:
