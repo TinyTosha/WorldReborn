@@ -1,4 +1,4 @@
-# WorldReborn
+# World: Reborn
 
 ![Title](https://github.com/user-attachments/assets/30e11e0a-38f6-4461-9f1e-d4312782667a)
 
