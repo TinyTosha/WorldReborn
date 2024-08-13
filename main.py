@@ -10,13 +10,14 @@ options_path = 'config/Game.cfg'
 lang_dir = 'config/lang'
 debug_mode = False
 chat_open = False
-version_fordebug = 'dev_06-notdemo'
-default_version = 'dev_06-notdemo'
+version_fordebug = 'dev_07-demo'
+default_version = 'dev_07-demo'
 default_playername = 'Player'
 default_lang = 'eng'
 default_tick = 60
 default_scene_name = 'Loading...'
 default_secret= 'null'
+default_render_mode = 'Legacy'
 
 if not os.path.exists('config'):
     os.makedirs('config')
@@ -37,6 +38,16 @@ else:
         for line in lines:
             if line.startswith('Data='):
                 SECRET = line.strip().split('=')[1]
+if not os.path.exists('config/Render.cfg'):
+    with open('config/Render.cfg', 'w') as f:
+        f.write(f'Data={default_render_mode}\n# ---=== Render Types: ===---\n#"Legacy" - Classic render, no camera, can use block\n#"BetaNew" - Render with camera, can`t use block')
+    RENDER_MODE = default_render_mode
+else:
+    with open('config/Render.cfg', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if line.startswith('Data='):
+                RENDER_MODE = line.strip().split('=')[1]
 
 with open('config/.temp/scenename.cfg', 'w') as f:
     f.write(f'data={default_scene_name}')
@@ -49,7 +60,12 @@ with open('config/.temp/scenename.cfg', 'r') as f:
             if line.startswith('data='):
                 VERSION = line.strip().split('=')[1]
 SCENE_NAME = 'Menu'
-
+if RENDER_MODE == "Legacy":
+    RENDER_MODE_VERSION = 'Alpha 0.1'
+elif RENDER_MODE == "BetaNew":
+    RENDER_MODE_VERSION = 'dev 0.1'
+else:
+    RENDER_MODE_VERSION = 'Unnamed'
 
 if not os.path.exists(options_path):
     with open(options_path, 'w') as f:
@@ -88,6 +104,7 @@ pygame.init()
 logging.info(f'World: Reborn - {version_fordebug} launched!')
 logging.info(f'Loggined: {PLR_NAME}! Enjoy the game!')
 logging.info('')
+logging.info(f'Render Type loaded: "{RENDER_MODE}"')
 if PLR_NAME == 'TinyTosha':
     logging.error("Don't lie!")
     quit()
@@ -102,8 +119,10 @@ except FileNotFoundError:
     icon_path = icon_path.replace("\\", "/")
     logging.error(f'Icon not found: {icon_path}')
     sys.exit(1)
-
-screen = pygame.display.set_mode((800, 600))
+if RENDER_MODE == 'Legacy':
+    screen = pygame.display.set_mode((800, 600))
+if RENDER_MODE == 'BetaNew':
+    screen = pygame.display.set_mode((1500, 600))
 pygame.display.set_caption(f'World Reborn - {VERSION} - {SCENE_NAME}')
 
 os.remove('config/.temp/scenename.cfg')
@@ -214,6 +233,31 @@ if SECRET == 'SkyBlock':
         "                    "
     ]
     logging.info('World by coconut31')
+elif SECRET == 'BigTest':
+    WORLD_LAYOUT = [
+        
+        "                                                                                    000000000",
+        "                                                                                   01422222410",
+        "                                                                                  0142222222410",
+        "                                                                                 014222222222410",
+        "                                                                                01422222222222410",
+        "                                                                               0142222222222222410",
+        "                l                                                             014222222222222222410",
+        " pppppppp      lll                                                           01422222222222222222410",
+        " gwwwwwwp                                                                   0142222222222222222222410",
+        " pwwwwwww       t                                                          014222222222222222222222410",
+        "0[[[[[[[[0000000000    000000000000000000000000000000000000000000000000000011422222222222222222222241100000000000000000000",
+        "111111111111111111111        111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+        "44444444444444444444444       44444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444",
+        "22252222222222222222222222      222266622222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "25555222222222622222222222222222266666622222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "22222225522222262262222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333"
+    ]
+    if not RENDER_MODE  == 'BetaNew':
+        logging.error(f'For "{SECRET}" need to activate the render mode "BetaNew" in the "BetaFeatures.cfg"')
+    SPAWN_TREE = random.randint(1, 1)
+    SPAWN_HOUSE = random.randint(1, 1)      
 else:
     WORLD_LAYOUT = [
         "                l   ",
@@ -228,6 +272,11 @@ else:
         "22222225522222262262",
         "33333333333333333333"
     ]
+    SPAWN_TREE = random.randint(0, 1)
+    SPAWN_HOUSE = random.randint(0, 10)
+
+
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -289,15 +338,15 @@ class Block(pygame.sprite.Sprite):
 
 def create_world(layout):
     logging.info('Creating new world... %10')
-    SPAWN_TREE = random.randint(0, 1)
-    SPAWN_HOUSE = random.randint(0, 10)
     if SPAWN_TREE == 1:
         logging.info('Structure created: "structures/tree/" resources/textures/structures/tree/')
-    if SPAWN_HOUSE == 5:
+    if SPAWN_HOUSE == 1:
         logging.info('Structure created: "structures/house/" resources/textures/structures/house/')
     logging.info('Creating new world... %50')
     blocks = pygame.sprite.Group()
     y_offset = 600 - len(layout) * TILE_SIZE
+    if RENDER_MODE == 'BetaNew':
+        logging.warn(f'You use the Render Type: {RENDER_MODE}. Block placement and breaking disible!')
     for y, row in enumerate(layout):
         for x, tile in enumerate(row):
             if tile == '0':
@@ -324,16 +373,19 @@ def create_world(layout):
                 if SPAWN_TREE == 1:
                     blocks.add(Block('structures/tree/leaves', x * TILE_SIZE, y * TILE_SIZE + y_offset))
             elif tile == '[':
-                if SPAWN_HOUSE == 5:
+                if SPAWN_HOUSE == 1:
                     blocks.add(Block('structures/house/planks', x * TILE_SIZE, y * TILE_SIZE + y_offset))
                 else:
                     blocks.add(Block('grass_block', x * TILE_SIZE, y * TILE_SIZE + y_offset))
             elif tile == 'p':
-                if SPAWN_HOUSE == 5:
+                if SPAWN_HOUSE == 1:
                     blocks.add(Block('structures/house/planks', x * TILE_SIZE, y * TILE_SIZE + y_offset))
             elif tile == 'g':
-                if SPAWN_HOUSE == 5:
+                if SPAWN_HOUSE == 1:
                     blocks.add(Block('structures/house/glass', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == 'w':
+                if SPAWN_HOUSE ==1:
+                    blocks.add(Block('structures/house/wall', x * TILE_SIZE, y * TILE_SIZE + y_offset))
     logging.info('Creating new world... %100')
     return blocks
 
@@ -400,13 +452,15 @@ def draw_debug_info(player):
     
     version_text = debug_font.render(f'World: Reborn - {version_fordebug}', True, (255, 0, 0))
     ticks_text = debug_font.render(f'Ticks: {TICK_CFG}', True, (255, 0, 0))
-    coords_text = debug_font.render(f'Coordinates (X, Y): ({int(player.rect.x)}, {int(player.rect.y)})', True, (255, 0, 0))
-    scenename_text = debug_font.render(f'Secret-code: {SECRET}', True, (255, 0, 0))
+    coords_text = debug_font.render(f'X, Y: ({int(player.rect.x)}, {int(player.rect.y)})', True, (255, 0, 0))
+    secretcode_text = debug_font.render(f'Secret: {SECRET}', True, (255, 0, 0))
+    RENDER_MODE_text = debug_font.render(f'RenderType: {RENDER_MODE} - {RENDER_MODE_VERSION}', True, (255, 0, 0))
 
     screen.blit(version_text, (10, 10))
-    screen.blit(ticks_text, (10, 70))
-    screen.blit(coords_text, (10, 40))
-    screen.blit(scenename_text, (10, 100))
+    screen.blit(ticks_text, (10, 130))
+    screen.blit(coords_text, (10, 70))
+    screen.blit(secretcode_text, (10, 100))
+    screen.blit(RENDER_MODE_text, (10, 40))
 
 def process_command(command):
     if command == "/world_layout":
@@ -431,6 +485,9 @@ def game_loop():
     hotbar = create_hotbar()
     selected_slot = 0
     inventory = {}
+
+    camera_offset_x = 0
+    camera_offset_y = 0
 
     last_generation_time = pygame.time.get_ticks()
     paused = False
@@ -556,10 +613,22 @@ def game_loop():
 
             screen.fill((135, 206, 235))
 
-            blocks.update()
+            camera_offset_x = player.rect.centerx - 800 // 2
+            camera_offset_y = player.rect.centery - 600 // 2
 
-            blocks.draw(screen)
-            all_sprites.draw(screen)
+            if RENDER_MODE == 'BetaNew':
+
+                player_draw_rect = player.rect.move(-camera_offset_x, -camera_offset_y)
+                screen.blit(player.image, player_draw_rect)
+                for block in blocks:
+                    block_draw_rect = block.rect.move(-camera_offset_x, -camera_offset_y)
+                    screen.blit(block.image, block_draw_rect)
+            elif RENDER_MODE == 'Legacy':
+                
+                blocks.update()
+
+                blocks.draw(screen)
+                all_sprites.draw(screen)
 
             draw_hotbar(hotbar, selected_slot)
 
