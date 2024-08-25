@@ -7,17 +7,20 @@ import random
 import time
 
 options_path = 'config/Game.cfg'
+temp_path = 'config/.temp'
 lang_dir = 'config/lang'
 debug_mode = False
 chat_open = False
-version_fordebug = 'dev_07-demo'
-default_version = 'dev_07-demo'
+version_fordebug = 'dev_08-lastdevver'
+default_version = 'dev_08-lastdevver'
+default_log_dir = 'config/.temp/logs'
 default_playername = 'Player'
 default_lang = 'eng'
 default_tick = 60
 default_scene_name = 'Loading...'
 default_secret= 'null'
 default_render_mode = 'Legacy'
+nextval = 1
 
 if not os.path.exists('config'):
     os.makedirs('config')
@@ -69,11 +72,12 @@ else:
 
 if not os.path.exists(options_path):
     with open(options_path, 'w') as f:
-        f.write(f'version={default_version}\nlang={default_lang}\ntick={default_tick}\nplayername={default_playername}')
+        f.write(f'version={default_version}\nlang={default_lang}\ntick={default_tick}\nplayername={default_playername}\nsavelogs_path={default_log_dir}')
     VERSION = default_version
     LANG = default_lang
     TICK_CFG = default_tick
     PLR_NAME = default_playername
+    log_dir = default_log_dir
 else:
     with open(options_path, 'r') as f:
         lines = f.readlines()
@@ -86,19 +90,21 @@ else:
                 TICK_CFG = int(line.strip().split('=')[1])
             elif line.startswith('playername='):
                 PLR_NAME = line.strip().split('=')[1]
+            elif line.startswith('savelogs_path='):
+                log_dir = line.strip().split('=')[1]
 
-log_dir = 'logs'
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
 log_filename = f'log.{datetime.now().strftime("%d%m%y.%H%M")}.txt'
-logging.basicConfig(level=logging.DEBUG,
-                    format='[%(asctime)s, "%(levelname)s"] %(message)s',
-                    datefmt='%H:%M:%S',
-                    handlers=[
-                        logging.FileHandler(os.path.join(log_dir, log_filename)),
-                        logging.StreamHandler(sys.stdout)
-                    ])
+logging.basicConfig(
+                level=logging.DEBUG,
+                format=(f'[%(asctime)s] [Main\%(levelname)s] %(message)s'),
+                datefmt='%H:%M:%S',
+                handlers=[
+                    logging.FileHandler(os.path.join(log_dir, log_filename)),
+                    logging.StreamHandler(sys.stdout)
+                ])
 
 pygame.init()
 logging.info(f'World: Reborn - {version_fordebug} launched!')
@@ -122,7 +128,7 @@ except FileNotFoundError:
 if RENDER_MODE == 'Legacy':
     screen = pygame.display.set_mode((800, 600))
 if RENDER_MODE == 'BetaNew':
-    screen = pygame.display.set_mode((1500, 600))
+    screen = pygame.display.set_mode((1100, 640))
 pygame.display.set_caption(f'World Reborn - {VERSION} - {SCENE_NAME}')
 
 os.remove('config/.temp/scenename.cfg')
@@ -180,6 +186,11 @@ def load_language(lang_code):
             sys.exit(1)
     return lang_data
 
+
+logging.info('')
+logging.info('  ---=== Enjoy the game! ===---')
+logging.info('')
+
 def show_error_message():
     error_font = pygame.font.Font(font_path, 30)
     error_text = error_font.render("Install eng.lang please:", True, (255, 0, 0))
@@ -233,31 +244,36 @@ if SECRET == 'SkyBlock':
         "                    "
     ]
     logging.info('World by coconut31')
-elif SECRET == 'BigTest':
+elif SECRET == 'OpenWorld':
     WORLD_LAYOUT = [
-        
-        "                                                                                    000000000",
-        "                                                                                   01422222410",
-        "                                                                                  0142222222410",
-        "                                                                                 014222222222410",
-        "                                                                                01422222222222410",
-        "                                                                               0142222222222222410",
-        "                l                                                             014222222222222222410",
-        " pppppppp      lll                                                           01422222222222222222410",
-        " gwwwwwwp                                                                   0142222222222222222222410",
-        " pwwwwwww       t                                                          014222222222222222222222410",
-        "0[[[[[[[[0000000000    000000000000000000000000000000000000000000000000000011422222222222222222222241100000000000000000000",
-        "111111111111111111111        111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
-        "44444444444444444444444       44444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444",
-        "22252222222222222222222222      222266622222222222222222222222222222222222222222222222222222222222222222222222222222222222",
-        "25555222222222622222222222222222266666622222222222222222222222222222222222222222222222222222222222222222222222222222222222",
-        "22222225522222262262222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
-        "333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333"
+        "                              pwwppp                                                000000000                                                     ll              2                            2             ",
+        "                              pppp                                                 01422222410                                                     w              22                          22             ",
+        "                                                                                  0142222222410                                                  wwww             222222222222222222222222222222             ",
+        "                                                                                 014222222222410                                                2w22w2            222222222222222222222222222222             ",
+        "                                                                                014222222222                                                    2222222           222222222222222222222222222222             ",
+        "                                                                               014225522222                                                     2    2            222222222222222222222222222222             ",
+        "                l                                                             0142255552     22410                                              2    2   22222    222222222222222222222222222222             ",
+        " pppppppp      lll                                                           0142222252    22222410                                             2    2     p      222222222222222222222222222222             ",
+        " gwwwwwwp                                       t                           0142222252     2222222410                                           2    22    p      222222222222222222222222222222             ",
+        " pwwwwwww       t                              ttt                         01422222222    222222222410                                                     p      222222222222222222222222222222             ",
+        "0[[[[[[[[0000000000    0000000000000000000000000000000000000000000000000000114222222222   22222222241100000000000000000ppppppppppppppppppppppp000000000000000000000000000000000000000000000000000000000000000",
+        "111111111111111111111        111111111111111111111111111111111111111111111112222222222    22222222222111111111111111111  w   w    w   w   w   111111111111111111111111111111111111111111111111111111111111111",
+        "44444444444444444444444       44444444444444444444444444444444444444444444422222222222   222222222222244444444444444444  w   w    w   w   w   444444444444444444444444444444444444444444444444444444444444444",
+        "22252222222222222222222222      222266622222222222222222222222222222222222222222222222222222222222222222222222222222222ooooooooooooooooooooooo222222222222222222222222222222222222222222222222222222222222222",
+        "25555222222222622222222222222222266666622222222222222222222222222222222222222222222222222222222222222222222222222222222ooooooooooooooooooooooo222222222222222222222222222222222222222222222222222222222222222",
+        "22222225522222262262222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222oooooooooooooooooo22222222222222222222222222222222222222222222222222222222222222222",
+        "2222222552222226226222222222222222555555222222222222222222555555555555555555555555552222222226666666666666622222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "2222222552222226226222222222222222555555222222222222222222555555555555555555555555552222222226666666666666622222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "2222222552222226226222222222222222555555222222222222222222555555555555555555555555552222222226666666666666622222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "2222222552222226226222222222222222555555222222222222222222555555555555555555555555552222222226666666666666622222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "2222222552222226226222222222222222555555222222222222222222555555555555555555555555552222222226666666666666622222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "2222222552222226226222222222222222555555222222222222222222555555555555555555555555552222222226666666666666622222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333"
     ]
     if not RENDER_MODE  == 'BetaNew':
         logging.error(f'For "{SECRET}" need to activate the render mode "BetaNew" in the "BetaFeatures.cfg"')
-    SPAWN_TREE = random.randint(1, 1)
-    SPAWN_HOUSE = random.randint(1, 1)      
+    SPAWN_TREE = 1
+    SPAWN_HOUSE = 1    
 else:
     WORLD_LAYOUT = [
         "                l   ",
@@ -332,9 +348,17 @@ class Block(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(texture, (TILE_SIZE, TILE_SIZE))
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
+        global nextval
+        self.id = nextval
+        nextval += 1
 
     def update(self):
         pass
+class BlockManager:
+    def __init__(self):
+        self.blocks = []
+        self.nextval = 1 
+
 
 def create_world(layout):
     logging.info('Creating new world... %10')
@@ -386,16 +410,20 @@ def create_world(layout):
             elif tile == 'w':
                 if SPAWN_HOUSE ==1:
                     blocks.add(Block('structures/house/wall', x * TILE_SIZE, y * TILE_SIZE + y_offset))
+            elif tile == 'o':
+                blocks.add(Block('water/water', x * TILE_SIZE, y * TILE_SIZE + y_offset))
     logging.info('Creating new world... %100')
     return blocks
 
 def main_menu():
     title_text = font.render(lang_data.get('menu.title', 'World: Reborn'), True, (255, 255, 255))
     play_text = font.render(lang_data.get('menu.button.play', 'Play'), True, (255, 255, 255))
-
-    title_rect = title_text.get_rect(center=(400, 200))
-    play_rect = play_text.get_rect(center=(400, 300))
-
+    if RENDER_MODE == 'Legacy':
+        title_rect = title_text.get_rect(center=(400, 200))
+        play_rect = play_text.get_rect(center=(400, 300))
+    elif RENDER_MODE == 'BetaNew':
+        title_rect = title_text.get_rect(center=(550, 300))
+        play_rect = play_text.get_rect(center=(550, 400))
     while True:
         screen.fill((0, 0, 0))
         screen.blit(title_text, title_rect)
@@ -505,21 +533,7 @@ def game_loop():
                 if chat_active:
                     chat_active, chat_text = handle_chat_input(event, chat_active, chat_text)
                 else:
-                    if event.key == pygame.K_f:
-                        mouse_x, mouse_y = pygame.mouse.get_pos()
-                        block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
-                        block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
-                        for block in blocks:
-                            if block.rect.topleft == (block_x, block_y) and in_reach(player, block):
-                              blocks.remove(block)
-                            block_type = block.image.get_at((0, 0))
-                            block_type = block_type[:3]
-                            block_type = next((k for k, v in textures.items() if v.get_at((0, 0)) == block_type), 'error_block')
-                            if block_type not in inventory:
-                                inventory[block_type] = 0
-                            inventory[block_type] += 1
-                            break
-                    elif event.key == pygame.K_ESCAPE:
+                    if event.key == pygame.K_ESCAPE:
                         if not paused:
                             show_pause_screen()
                             paused = True
@@ -536,20 +550,26 @@ def game_loop():
                     selected_slot = (selected_slot - 1) % 10
                 elif event.button == 5:
                     selected_slot = (selected_slot + 1) % 10
-                elif event.button == 1:
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
-                    block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
-                    for block in blocks:
-                        if block.rect.topleft == (block_x, block_y) and in_reach(player, block):
-                            blocks.remove(block)
-                            block_type = block.image.get_at((0, 0))
-                            block_type = block_type[:3]
-                            block_type = next((k for k, v in textures.items() if v.get_at((0, 0)) == block_type), 'error_block')
-                            if block_type not in inventory:
-                                inventory[block_type] = 0
-                            inventory[block_type] += 1
-                            break
+                if RENDER_MODE == 'Legacy':
+                    if event.button == 1:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
+                        block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
+                        for block in blocks:
+                            if block.rect.topleft == (block_x, block_y) and in_reach(player, block):
+                                blocks.remove(block)
+                                block_type = block.image.get_at((0, 0))
+                                block_type = block_type[:3]
+                                block_type = next((k for k, v in textures.items() if v.get_at((0, 0)) == block_type), 'error_block')
+                                if block_type not in inventory:
+                                    inventory[block_type] = 0
+                                inventory[block_type] += 1
+                                break
+                    elif RENDER_MODE == 'BetaNew':
+                        if event.type == pygame.MOUSEBUTTONDOWN:  # событие нажатия клавиши
+                            if event.button == 1 and selected_block:
+                                blocks.remove(selected_block) # удаляем блок из списка
+                                inventory[block_type] += 1 
                 elif event.button == 3:
                     x, y = pygame.mouse.get_pos()
                     block_x = x // TILE_SIZE * TILE_SIZE
@@ -560,46 +580,7 @@ def game_loop():
                             new_block = Block(block_type, block_x, block_y)
                             blocks.add(new_block)
                             inventory[block_type] -= 1
-
-                elif event.key == pygame.K_ESCAPE:
-                    if not paused:
-                        show_pause_screen()
-                        paused = True
-                    else:
-                        paused = False
-                elif event.key == pygame.K_F3:
-                    debug_mode = not debug_mode  # Переключаем режим отладки
-                elif event.key in range(pygame.K_1, pygame.K_0 + 1):
-                    selected_slot = (event.key - pygame.K_1) % 10
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    selected_slot = (selected_slot - 1) % 10
-                elif event.button == 5:
-                    selected_slot = (selected_slot + 1) % 10
-                elif event.button == 1:
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    block_x = (mouse_x // TILE_SIZE) * TILE_SIZE
-                    block_y = (mouse_y // TILE_SIZE) * TILE_SIZE
-                    for block in blocks:
-                        if block.rect.topleft == (block_x, block_y) and in_reach(player, block):
-                            blocks.remove(block)
-                            block_type = block.image.get_at((0, 0))
-                            block_type = block_type[:3]
-                            block_type = next((k for k, v in textures.items() if v.get_at((0, 0)) == block_type), 'error_block')
-                            if block_type not in inventory:
-                                inventory[block_type] = 0
-                            inventory[block_type] += 1
-                            break
-                elif event.button == 3:
-                    x, y = pygame.mouse.get_pos()
-                    block_x = x // TILE_SIZE * TILE_SIZE
-                    block_y = y // TILE_SIZE * TILE_SIZE
-                    if not any(block.rect.collidepoint(x, y) for block in blocks):
-                        block_type = 'grass_block'
-                        if block_type in inventory and inventory[block_type] > 0:
-                            new_block = Block(block_type, block_x, block_y)
-                            blocks.add(new_block)
-                            inventory[block_type] -= 1
+            
 
         if not paused:
             current_time = pygame.time.get_ticks()
@@ -623,6 +604,9 @@ def game_loop():
                 for block in blocks:
                     block_draw_rect = block.rect.move(-camera_offset_x, -camera_offset_y)
                     screen.blit(block.image, block_draw_rect)
+
+                    if block.rect.collidepoint(pygame.mouse.get_pos()): # блок под курсором?
+                        selected_block = block 
             elif RENDER_MODE == 'Legacy':
                 
                 blocks.update()
